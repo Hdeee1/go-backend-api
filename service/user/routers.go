@@ -6,6 +6,7 @@ import (
 	"go-backend-api/types"
 	"go-backend-api/utils"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -32,11 +33,14 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request){
 	var payload types.RegisterUserPayload
 	if err := utils.ParseJSON(r, payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
+		return
 	}
+
 	// check if the user exist 
 	_, err := h.store.GetUserByEmail(payload.Email)
 	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("User with email &s already exists", payload.Email))
+		utils.WriteError(w, http.StatusBadRequest,
+			fmt.Errorf("User with email &s already exists", payload.Email))
 		return
 	}
 
@@ -52,6 +56,7 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request){
 		LastName: payload.LastName,
 		Email: payload.Email,
 		Password: hashedPassword,
+		CreatedAt: time.Now(),
 	})
 
 	if err != nil {

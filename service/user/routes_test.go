@@ -3,6 +3,7 @@ package user
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"go-backend-api/types"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestUserServicesHandlers(t *testing.T){
-	userStore := mockUserStore{}
+	userStore := &mockUserStore{}
 	handler := NewHandler(userStore)
 
 	t.Run("should fail if the user payload is invalid", func(t *testing.T) {
@@ -36,7 +37,7 @@ func TestUserServicesHandlers(t *testing.T){
 		router.ServeHTTP(rr, req)
 
 		if rr.Code != http.StatusBadRequest{
-			t.Error("expired status code %d, got %d", http.StatusBadRequest, rr.Code)
+			t.Errorf("expired status code %d, got %d", http.StatusBadRequest, rr.Code)
 		}
 	})
 }
@@ -44,9 +45,13 @@ func TestUserServicesHandlers(t *testing.T){
 type mockUserStore struct {}
 
 func (m *mockUserStore) GetUserByEmail(email string) (*types.User, error){
-	return  nil, nil 
+	return  nil, fmt.Errorf("user not found")
 }
 
-func (m *mockUserStore) CreateUser(id int) (types.User, error){
-	return  nil, nil 
+func (m *mockUserStore) CreateUser(user types.User) error{
+	return nil
+}
+
+func (m *mockUserStore) GetUserByID(id int) (*types.User, error) {
+	return nil, fmt.Errorf("user not found")
 }

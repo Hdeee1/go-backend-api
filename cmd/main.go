@@ -20,7 +20,6 @@ func main(){
 		AllowNativePasswords: 	true,
 		ParseTime: 				true,
 	})
-	initStorage(db)
 
 	if err != nil {
 		log.Fatal(err)
