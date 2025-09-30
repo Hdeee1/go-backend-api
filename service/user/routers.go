@@ -2,12 +2,12 @@ package user
 
 import (
 	"fmt"
+	"net/http"
+
 	"go-backend-api/service/auth"
 	"go-backend-api/types"
 	"go-backend-api/utils"
-	"net/http"
-	"time"
-
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 )
 
@@ -28,41 +28,46 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request){
 
 }
 
-func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request){
+func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	// get JSON payload
-	var payload types.RegisterUserPayload
-	if err := utils.ParseJSON(r, payload); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
+	var user types.RegisterUserPayload
+	if err := utils.ParseJSON(r, &user); err != nil {
+		utils.WriteError(w, http.StatusBadRequest,  err)
 		return
 	}
 
-	// check if the user exist 
-	_, err := h.store.GetUserByEmail(payload.Email)
+	if err := utils.Validate.Struct(user); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload: %v", errors))
+		return
+	}
+
+	_, err := h.store.GetUserByEmail(user.Email)
 	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest,
-			fmt.Errorf("User with email &s already exists", payload.Email))
-		return
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already exist", user.Email))
 	}
 
-	hashedPassword, err := auth.HashPassword(payload.Password)
+	// hash password
+	hashedPassword, err := auth.HashPassword(user.Password)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	// if it doest we create an the new user
 	err = h.store.CreateUser(types.User{
-		FirstName: payload.FirstName,
-		LastName: payload.LastName,
-		Email: payload.Email,
-		Password: hashedPassword,
-		CreatedAt: time.Now(),
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Password:  hashedPassword,
 	})
-
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, nil)
+}
+
+func (h *Handler) handleGetUser(w http.ResponseWriter, r *http.Request) {
+
 }
